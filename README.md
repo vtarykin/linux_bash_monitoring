@@ -2,7 +2,7 @@
 
 A collection of Bash utilities for Linux system administration, system information reporting, and filesystem analysis.
 
-The project demonstrates modular shell scripting, Linux system inspection, command-line input validation, filesystem operations, error handling, and automated code quality checks.
+The project demonstrates modular shell scripting, Linux system inspection, filesystem operations, input validation, error handling, automated testing, and CI-based code quality checks.
 
 ## Table of Contents
 
@@ -14,12 +14,13 @@ The project demonstrates modular shell scripting, Linux system inspection, comma
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Generate a System Report](#generate-a-system-report)
-  - [Analyze a Directory](#analyze-a-directory)
+  - [System Information Report](#system-information-report-1)
+  - [Directory Analyzer](#directory-analyzer-1)
 - [Testing and Code Quality](#testing-and-code-quality)
 - [Implementation Highlights](#implementation-highlights)
 - [Scope and Limitations](#scope-and-limitations)
 - [Future Improvements](#future-improvements)
+- [License](#license)
 
 ## Features
 
@@ -30,10 +31,14 @@ The project demonstrates modular shell scripting, Linux system inspection, comma
 - Hostname, current user, operating system, and timestamp
 - Time zone and system uptime
 - Global IPv4 address with CIDR prefix and default gateway
-- Total and used RAM, plus available memory
+- Total and used memory, plus available memory
 - Total, used, and available space on the root filesystem
 
-The report supports colorized terminal output and optional export to a plain-text file.
+Supported output formats:
+
+- **Text:** human-readable output with optional terminal colors.
+- **JSON:** structured output suitable for consumption by other scripts and tools.
+- **File export:** save the generated report to a specified path.
 
 ### Directory Analyzer
 
@@ -51,13 +56,14 @@ The analyzer supports paths containing spaces and reports permission-related iss
 
 ## Technology Stack
 
-- **Shell:** Bash
+- **Shell scripting:** Bash
 - **Operating system:** Linux
 - **System utilities:** `ip`, `free`, `uptime`, `df`
 - **Filesystem utilities:** `find`, `du`, `sort`, `stat`, `numfmt`
 - **Text processing:** `awk`, `grep`, `sed`, `wc`
 - **Automated testing:** Bats
 - **Static analysis:** ShellCheck
+- **Data validation in tests:** Python 3
 - **CI/CD:** GitHub Actions
 
 ## Repository Structure
@@ -87,9 +93,10 @@ linux_bash_monitoring/
 - `iproute2`
 - `procps`
 - `file`
-- Bats and ShellCheck for development and testing
 
-The scripts are intended for Linux environments such as Ubuntu. Git Bash on Windows is not a supported runtime environment.
+Python 3, Bats, and ShellCheck are required for development and testing, but Python is not needed to run the utilities themselves.
+
+The tools are designed for Linux environments such as Ubuntu. Git Bash on Windows is not a supported runtime environment.
 
 ## Installation
 
@@ -113,17 +120,17 @@ Make the scripts executable:
 chmod +x bin/*.sh
 ```
 
-For development and testing, install Bats and ShellCheck:
+For development and testing:
 
 ```bash
-sudo apt install -y bats shellcheck
+sudo apt install -y bats shellcheck python3
 ```
 
 ## Usage
 
-### Generate a System Report
+### System Information Report
 
-Display system information:
+Display a human-readable system report:
 
 ```bash
 ./bin/system-report.sh
@@ -135,10 +142,28 @@ Disable terminal colors:
 ./bin/system-report.sh --no-color
 ```
 
-Save the report to a file:
+Generate a JSON report:
+
+```bash
+./bin/system-report.sh --format json
+```
+
+Save the text report to a file:
 
 ```bash
 ./bin/system-report.sh --output system-report.status
+```
+
+Save the JSON report to a file:
+
+```bash
+./bin/system-report.sh --format json --output system-report.json
+```
+
+Validate a saved JSON report:
+
+```bash
+python3 -m json.tool system-report.json
 ```
 
 Display command-line help:
@@ -147,9 +172,9 @@ Display command-line help:
 ./bin/system-report.sh --help
 ```
 
-The report includes system identity, uptime, network information, memory usage, and root filesystem capacity.
+The JSON output contains system attributes as structured key-value pairs. Numeric measurements are represented as JSON numbers when available; unavailable measurements are represented as strings.
 
-### Analyze a Directory
+### Directory Analyzer
 
 Analyze a directory:
 
@@ -157,25 +182,23 @@ Analyze a directory:
 ./bin/directory-analyzer.sh /var/log
 ```
 
-Paths containing spaces are supported:
+Analyze a path containing spaces:
 
 ```bash
 ./bin/directory-analyzer.sh "/home/user/My Documents"
 ```
 
-Display usage information:
+Display command-line help:
 
 ```bash
 ./bin/directory-analyzer.sh --help
 ```
 
-The analyzer reports directory and file counts, categorizes files by extension or executable status, and identifies the largest directories and files.
-
-The filesystem root `/` is rejected to avoid an unintended scan of the entire filesystem.
+The analyzer rejects the filesystem root `/` to prevent an unintended scan of the entire filesystem.
 
 ## Testing and Code Quality
 
-Run the automated test suite:
+Run all automated tests:
 
 ```bash
 bats tests/
@@ -195,32 +218,38 @@ for file in bin/*.sh lib/*.sh; do
 done
 ```
 
+The Bats test suite validates command-line behavior, report generation, JSON validity, file export, directory analysis, and error handling.
+
 The GitHub Actions workflow runs syntax checks, ShellCheck, and automated tests on pushes and pull requests.
 
 ## Implementation Highlights
 
 - Modular Bash functions and a shared system information library
-- Command-line option handling and input validation
-- Linux system information collection from standard system utilities and `/proc`
+- Command-line option parsing and validation
+- Linux system information collection from standard utilities and `/proc`
+- Structured JSON output for integration with other tools
 - Filesystem traversal, file size ranking, and MIME type identification
 - Handling of filenames containing spaces
 - Temporary file management and exit status handling
-- Automated tests with Bats
-- Static analysis with ShellCheck
+- Automated tests and static analysis
 - Continuous integration through GitHub Actions
 
 ## Scope and Limitations
 
-The tools perform on-demand inspection; they do not provide continuous monitoring, alert delivery, historical metrics storage, or a metrics backend.
+The tools perform on-demand system inspection; they do not provide continuous monitoring, alert delivery, historical metrics storage, or a metrics backend.
 
-Filesystem analysis is subject to operating system permissions. Results may be incomplete when the executing user cannot access some entries; the analyzer reports permission-related errors when detected.
+Filesystem results may be incomplete when the executing user cannot access some entries. The analyzer reports permission-related errors when detected.
 
-The tools are designed for Linux and rely on Linux-specific system information sources and GNU command-line utilities.
+The utilities rely on Linux-specific system information sources and GNU command-line tools. They are intended as lightweight administration utilities rather than a replacement for a full monitoring platform.
 
 ## Future Improvements
 
-- Add structured output formats such as JSON.
-- Extend automated tests to cover command failures and permission restrictions.
 - Add configurable thresholds for disk and memory usage.
 - Support scheduled report generation through systemd timers.
+- Add structured output to the directory analyzer.
+- Extend automated tests to cover command failures and permission restrictions.
 - Add optional integration with established Linux monitoring systems.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
