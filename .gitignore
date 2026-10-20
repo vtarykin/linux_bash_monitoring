@@ -1,0 +1,5 @@
+# Generated system reports
+*.status
+
+# Temporary files
+*.tmp
