@@ -19,7 +19,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            bats shellcheck
+            bats shellcheck python3
 
       - name: Check Bash syntax
         run: |

@@ -49,3 +49,52 @@ teardown() {
     run grep -q $'\033' "$report_file"
     [ "$status" -eq 1 ]
 }
+
+@test "JSON output is valid and contains expected fields" {
+    run bash "$REPORT" --format json
+
+    [ "$status" -eq 0 ]
+
+    printf '%s\n' "$output" > "$TEST_TMPDIR/report.json"
+
+    run python3 -c '
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as report_file:
+    data = json.load(report_file)
+
+assert "hostname" in data
+assert "ip_cidr" in data
+assert "ram_total_gib" in data
+assert "root_available_gib" in data
+' "$TEST_TMPDIR/report.json"
+
+    [ "$status" -eq 0 ]
+}
+
+@test "JSON report can be saved to a file" {
+    local report_file="$TEST_TMPDIR/system-report.json"
+
+    run bash "$REPORT" --format json --output "$report_file"
+
+    [ "$status" -eq 0 ]
+    [ -s "$report_file" ]
+
+    run python3 -c '
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as report_file:
+    json.load(report_file)
+' "$report_file"
+
+    [ "$status" -eq 0 ]
+}
+
+@test "unsupported output format returns exit code 2" {
+    run bash "$REPORT" --format yaml
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"unsupported output format"* ]]
+}
